@@ -8,8 +8,10 @@ from email.message import EmailMessage
 import logging
 import random
 from smtplib import SMTP
+from string import Template
+from pathlib import Path
 import textwrap
-from typing import NamedTuple, NewType, TypeVar, Iterator
+from typing import NamedTuple, NewType, TypeVar
 
 
 T = TypeVar('T')
@@ -39,7 +41,7 @@ def create_pairs(participants: list[T]) -> list[tuple[T, T]]:
 
 
 
-def create_message(santa: Participant, receiver: Participant) -> EmailMessage:
+def create_message(santa: Participant, receiver: Participant, message: Template) -> EmailMessage:
     """Creates a Message object which can be sent through a SMPT session."""
     
     content = f"""\
@@ -58,11 +60,18 @@ def create_message(santa: Participant, receiver: Participant) -> EmailMessage:
         logging.warning(f'{santa.name:<32} is the same as {receiver.name:>32}')
         raise ValueError('The santa and receiver should be two different participants')
 
+    content = textwrap.dedent(
+            message.substitute(
+                secret_santa=santa.firstname.title(),
+                receiver=receiver.name.title(),
+                )
+            )
+
     msg = EmailMessage()
     msg['Subject'] = 'TCI Secret Santa'
     msg['From'] = 'secret_santa@uibk.ac.at'
     msg['To'] = santa.adress
-    msg.set_content(textwrap.dedent(content))
+    msg.set_content(content)
 
     logging.info(f'{santa.name:<33} was assigned {receiver.name:>33}')
     return msg
@@ -82,18 +91,18 @@ def get_participants(filename: str) -> list[Participant]:
     return participants
 
 
-def main(filename):
+def main(filename: str, message_template: Template):
     participants = get_participants(filename)
     pairs = create_pairs(participants)
     try:
-        msgs = [create_message(santa, receiver) for santa, receiver in pairs]
+        msgs = [create_message(santa, receiver, message_template) for santa, receiver in pairs]
     except ValueError:
         logging.warning('No messages have been sent, try again.')
         logging.debug(pairs)
         raise ValueError('No messages have been sent, try again.') from None
-#     with SMTP('smtp.uibk.ac.at') as connection:
-#         for msg in msgs:
-#             connection.send_message(msg)
+     with SMTP('smtp.uibk.ac.at') as connection:
+         for msg in msgs:
+             connection.send_message(msg)
 
 
 if __name__ == '__main__':
@@ -110,8 +119,15 @@ if __name__ == '__main__':
             epilog='Frohe Weihnachten!',
             )
     parser.add_argument('adress_file', help="File that contains entries of the form 'full name, email adress' for each participant.")
+    parser.add_argument('--template', help='Template of the message that will be sent to every participant',
+                        default=Path(__file__).parent / 'MESSAGE_FROM_SANTA', type=Path)
 
     args = parser.parse_args()
     for a, v in vars(args).items():
         logging.info(f'{a}: {v}')
-    main(args.adress_file)
+
+    with open(args.template) as msg:
+        message_template = Template(msg.read())
+    logging.info(f'The message template is as follows:\n"""\n{textwrap.dedent(message_template.template)}"""\n')
+
+    main(args.adress_file, message_template)
