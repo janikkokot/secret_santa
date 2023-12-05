@@ -29,17 +29,10 @@ class Participant(NamedTuple):
 
 def create_pairs(participants: list[T]) -> list[tuple[T, T]]:
     """Every Participant will be assigned another random Participant."""
-    santas = participants
     receivers = participants.copy()
     random.shuffle(receivers)
-
-    for i, (santa, receiver) in enumerate(zip(santas, receivers[:-1])):
-        if santa == receiver:
-            receivers[i], receivers[i+1] = receivers[i+1], receivers[i]
-
-    return list(zip(santas, receivers))
-
-
+    shifted_receivers = receivers[1:] + [receivers[0]]
+    return list(zip(receivers, shifted_receivers))
 
 def create_message(santa: Participant, receiver: Participant, message: Template) -> EmailMessage:
     """Creates a Message object which can be sent through a SMPT session."""
@@ -100,9 +93,9 @@ def main(filename: str, message_template: Template):
         logging.warning('No messages have been sent, try again.')
         logging.debug(pairs)
         raise ValueError('No messages have been sent, try again.') from None
-     with SMTP('smtp.uibk.ac.at') as connection:
-         for msg in msgs:
-             connection.send_message(msg)
+    #  with SMTP('smtp.uibk.ac.at') as connection:
+        #  for msg in msgs:
+            #  connection.send_message(msg)
 
 
 if __name__ == '__main__':
