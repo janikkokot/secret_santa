@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import deque
 from datetime import datetime
 from email.message import EmailMessage
 import logging
@@ -29,17 +30,10 @@ class Participant(NamedTuple):
 
 def create_pairs(participants: list[T]) -> list[tuple[T, T]]:
     """Every Participant will be assigned another random Participant."""
-    santas = participants
-    receivers = participants.copy()
-    random.shuffle(receivers)
-
-    for i, (santa, receiver) in enumerate(zip(santas, receivers[:-1])):
-        if santa == receiver:
-            receivers[i], receivers[i+1] = receivers[i+1], receivers[i]
-
-    return list(zip(santas, receivers))
-
-
+    random.shuffle(participants)
+    receivers = deque(participants)
+    receivers.rotate(-1)  # to the left
+    return list(zip(participants, receivers))
 
 def create_message(santa: Participant, receiver: Participant, message: Template) -> EmailMessage:
     """Creates a Message object which can be sent through a SMPT session."""
@@ -91,7 +85,7 @@ def get_participants(filename: str) -> list[Participant]:
     return participants
 
 
-def main(filename: str, message_template: Template):
+def main(filename: str, message_template: Template, send: bool=False):
     participants = get_participants(filename)
     pairs = create_pairs(participants)
     try:
@@ -100,9 +94,15 @@ def main(filename: str, message_template: Template):
         logging.warning('No messages have been sent, try again.')
         logging.debug(pairs)
         raise ValueError('No messages have been sent, try again.') from None
-     with SMTP('smtp.uibk.ac.at') as connection:
-         for msg in msgs:
-             connection.send_message(msg)
+    if send:
+        logging.info('\nSending messages..')
+        with SMTP('smtp.uibk.ac.at') as connection:
+            for msg in msgs:
+                connection.send_message(msg)
+    else:
+        logging.warning("\nNo messages were sent! If this was not intended, use the '--send' flag!\n")
+        logging.info(f'This is an example message:\n{msgs[0].get_content()}')
+
 
 
 if __name__ == '__main__':
@@ -111,7 +111,6 @@ if __name__ == '__main__':
                         format='%(message)s',
                         level=logging.DEBUG,
                         )
-    logging.info(f'{f"{datetime.now():%d/%m/%y %H:%M}":=^80}')
     # parser setup
     parser = argparse.ArgumentParser(
             prog='Secret Santa',
@@ -121,8 +120,14 @@ if __name__ == '__main__':
     parser.add_argument('adress_file', help="File that contains entries of the form 'full name, email adress' for each participant.")
     parser.add_argument('--template', help='Template of the message that will be sent to every participant',
                         default=Path(__file__).parent / 'MESSAGE_FROM_SANTA', type=Path)
+    parser.add_argument('--send', action='store_true', help='Required to actually send the E-mails.')
 
     args = parser.parse_args()
+    if not args.send:
+        # if not send, print also to stderr
+        logging.getLogger().addHandler(logging.StreamHandler())
+
+    logging.info(f'{f"{datetime.now():%d/%m/%y %H:%M}":=^80}')
     for a, v in vars(args).items():
         logging.info(f'{a}: {v}')
 
@@ -130,4 +135,5 @@ if __name__ == '__main__':
         message_template = Template(msg.read())
     logging.info(f'The message template is as follows:\n"""\n{textwrap.dedent(message_template.template)}"""\n')
 
-    main(args.adress_file, message_template)
+    main(args.adress_file, message_template, send=args.send)
+    logging.info('Programm ran succesfully.')
