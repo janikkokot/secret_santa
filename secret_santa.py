@@ -8,7 +8,7 @@ from datetime import datetime
 from email.message import EmailMessage
 import logging
 import random
-from smtplib import SMTP
+from smtplib import SMTP, SMTPException
 from string import Template
 from pathlib import Path
 import textwrap
@@ -98,7 +98,10 @@ def main(filename: str, message_template: Template, send: bool=False):
         logging.info('\nSending messages..')
         with SMTP('smtp.uibk.ac.at') as connection:
             for msg in msgs:
-                connection.send_message(msg)
+                try:
+                    connection.send_message(msg)
+                except SMTPException as err:
+                    logging.error(f'Message could not be sent!\n{err}\n{msg}')
     else:
         logging.warning("\nNo messages were sent! If this was not intended, use the '--send' flag!\n")
         logging.info(f'This is an example message:\n{msgs[0].get_content()}')
