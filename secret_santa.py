@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import deque
 from datetime import datetime
 from email.message import EmailMessage
 import logging
@@ -29,10 +30,10 @@ class Participant(NamedTuple):
 
 def create_pairs(participants: list[T]) -> list[tuple[T, T]]:
     """Every Participant will be assigned another random Participant."""
-    receivers = participants.copy()
-    random.shuffle(receivers)
-    shifted_receivers = receivers[1:] + [receivers[0]]
-    return list(zip(receivers, shifted_receivers))
+    random.shuffle(participants)
+    receivers = deque(participants)
+    receivers.rotate(-1)  # to the left
+    return list(zip(participants, receivers))
 
 def create_message(santa: Participant, receiver: Participant, message: Template) -> EmailMessage:
     """Creates a Message object which can be sent through a SMPT session."""
