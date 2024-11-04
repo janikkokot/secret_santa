@@ -22,6 +22,7 @@ load_dotenv(find_dotenv())
 
 SUBJECT = os.getenv("EMAIL_SUBJECT")
 ADRESS = os.getenv("EMAIL_ADRESS")
+SMTP_SERVER = os.getenv("SMTP_SERVER")
 
 
 T = TypeVar("T")
@@ -107,7 +108,7 @@ def main(filename: str, message_template: Template, send: bool = False):
         raise ValueError("No messages have been sent, try again.") from None
     if send:
         logging.info("\nSending messages..")
-        with SMTP("localhost") as connection:
+        with SMTP(SMTP_SERVER) as connection:
             for msg in msgs:
                 try:
                     connection.send_message(msg)
