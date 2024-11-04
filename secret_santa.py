@@ -8,6 +8,7 @@ from datetime import datetime
 from email.message import EmailMessage
 import logging
 import random
+import csv
 from smtplib import SMTP, SMTPException
 from string import Template
 from pathlib import Path
@@ -77,13 +78,10 @@ def create_message(
 def get_participants(filename: str) -> list[Participant]:
     """Read in participants from a csv file."""
     participants = []
-    with open(filename) as csv:
-        for line in csv:
-            name, email = line.split(",")
-            _part = Participant(
-                name.strip(),
-                Email(email.strip()),
-            )
+    with open(filename) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            _part = Participant(name=row["name"], adress=Email(row["email"]))
             participants.append(_part)
     return participants
 
