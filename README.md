@@ -11,7 +11,7 @@ email addresses in the second column.
 
 ```csv
 name, email
-first-name last-name, first-name.last-name@email.column
+first-name last-name, first-name.last-name@email.com
 ...
 ```
 
