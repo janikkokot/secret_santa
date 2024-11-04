@@ -24,7 +24,7 @@ sudo apt install sendmail
 The message can be provided by an template where `$secret_santa` will be
 replaced by the first name of the receiver of the email, while `$receiver` will
 be the full name of the person, that receives the gift.
-The [default template](MESSAGE_FROM_SANTA.md) can be inspected for inspiration.
+The [default template](message_from_santa.html) can be inspected for inspiration.
 
 ```{bash}
 python secret_santa.py --help
