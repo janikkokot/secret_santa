@@ -3,17 +3,25 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import logging
+import os
+import random
+import textwrap
 from collections import deque
 from datetime import datetime
 from email.message import EmailMessage
-import logging
-import random
-import csv
 from smtplib import SMTP, SMTPException
 from string import Template
 from pathlib import Path
-import textwrap
 from typing import NamedTuple, NewType, TypeVar
+
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
+SUBJECT = os.getenv("EMAIL_SUBJECT")
+ADRESS = os.getenv("EMAIL_ADRESS")
 
 
 T = TypeVar("T")
@@ -30,7 +38,10 @@ class Participant(NamedTuple):
 
 
 def create_pairs(participants: list[T]) -> list[tuple[T, T]]:
-    """Every Participant will be assigned another random Participant."""
+    """Every Participant will be assigned another random Participant.
+
+    This will result in one monocyclic graph.
+    """
     random.shuffle(participants)
     receivers = deque(participants)
     receivers.rotate(-1)  # to the left
@@ -40,18 +51,14 @@ def create_pairs(participants: list[T]) -> list[tuple[T, T]]:
 def create_message(
     santa: Participant, receiver: Participant, message: Template
 ) -> EmailMessage:
-    """Creates a Message object which can be sent through a SMPT session."""
+    """Creates a Message object which can be sent through a SMPT session.
 
-    content = f"""\
-    Dear {santa.firstname.title()},
-
-    You have drawn {receiver.name.title()}.
-
-    The present should not be more expensive than 20€.
-    They will be unpacked together on Thursday at the TCI Christmas Party.
-
-    Best,
-    The Secret Santa Team
+    The message is a string template with the flags
+        $secret_santa
+            the receiver of the email
+        $receiver
+            the receiver of the gift
+    that are being replaced.
     """
     if santa == receiver:
         logging.warning("-" * 80)
@@ -66,8 +73,8 @@ def create_message(
     )
 
     msg = EmailMessage()
-    msg["Subject"] = "TCI Secret Santa"
-    msg["From"] = "secret_santa@uibk.ac.at"
+    msg["Subject"] = SUBJECT
+    msg["From"] = ADRESS
     msg["To"] = santa.adress
     msg.set_content(content)
 
@@ -133,7 +140,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--template",
         help="Template of the message that will be sent to every participant",
-        default=Path(__file__).parent / "MESSAGE_FROM_SANTA",
+        default=Path(__file__).parent / "MESSAGE_FROM_SANTA.md",
         type=Path,
     )
     parser.add_argument(
