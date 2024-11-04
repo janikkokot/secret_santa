@@ -107,7 +107,7 @@ def main(filename: str, message_template: Template, send: bool = False):
         raise ValueError("No messages have been sent, try again.") from None
     if send:
         logging.info("\nSending messages..")
-        with SMTP("smtp.uibk.ac.at") as connection:
+        with SMTP("localhost") as connection:
             for msg in msgs:
                 try:
                     connection.send_message(msg)
