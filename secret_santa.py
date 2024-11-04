@@ -77,7 +77,7 @@ def create_message(
     msg["Subject"] = SUBJECT
     msg["From"] = ADRESS
     msg["To"] = santa.adress
-    msg.set_content(content)
+    msg.set_content(content, subtype="html")
 
     logging.info(f"{santa.name:<33} was assigned {receiver.name:>33}")
     return msg
