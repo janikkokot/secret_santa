@@ -133,3 +133,4 @@ dmypy.json
 .ipynb_checkpoints
 *.ipynb
 paper/
+participants.csv
